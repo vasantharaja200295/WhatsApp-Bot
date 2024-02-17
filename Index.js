@@ -1,47 +1,43 @@
-const { Client, RemoteAuth } = require('whatsapp-web.js');
-const qrcode = require('qrcode-terminal');
+const { Client, LocalAuth } = require("whatsapp-web.js");
+const qrcode = require("qrcode-terminal");
+require("dotenv").config();
+const { GoogleGenerativeAI } = require("@google/generative-ai");
 
-const { MongoStore } = require('wwebjs-mongo');
-const mongoose = require('mongoose');
+const genAI = new GoogleGenerativeAI(process.env.API_KEY);
 
-
-
-mongoose.connect("mongodb://localhost:27017").then(() => {
-    const store = new MongoStore({ mongoose: mongoose });
-    const client = new Client({
-        authStrategy: new RemoteAuth({
-            store: store,
-            backupSyncIntervalMs: 300000,
-        })
-    });
-
-
-    client.on('qr', (qr) => {
-        qrcode.generate(qr, { small: true });
-    });
-
-    client.on('remote_session_saved', ()=>{
-        console.log('Session saved!');
-    })
-    
-    client.on('ready', () => {
-        console.log('Client is ready!');
-    });
-    
-    let tirgger = ['Hey', "hello", 'Hi', 'hi', 'Hello', 'Oi', 'oi', 'Hoi', 'hoi', 'hey', 'hoii', 'Hoii', 'oii', 'Oii'] 
-    let contacts = ['919629579216', '917010846735']
-    let count = 0;
-    client.on('message', async (message) => {
-        if(contacts.includes(message.from.split('@')[0])){
-            if (tirgger.includes(message.body)) {
-                await message.reply('What!');
-                count++;
-            }else if(count>0){
-                await client.sendMessage(message.from, 'Bye!');
-                count = 0;
-            } 
-        }
-    });
-    
-    client.initialize();
+const client = new Client({
+  authStrategy: new LocalAuth(),
 });
+
+client.on("qr", (qr) => {
+  qrcode.generate(qr, { small: true });
+});
+
+client.on("remote_session_saved", () => {
+  console.log("Session saved!");
+});
+
+client.on("ready", () => {
+  console.log("Client is ready!");
+});
+
+let contacts = ["919629579216", "917010846735", "919962135365"];
+
+client.on("message", async (message) => {
+  if (contacts.includes(message.from.split("@")[0])) {
+    const ans = await run(message.body);
+    message.reply(ans);
+  }
+});
+
+client.initialize();
+
+async function run(prompt) {
+  // For text-only input, use the gemini-pro model
+  const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+
+  const result = await model.generateContent(prompt);
+  const response = result.response;
+  const text = response.text();
+  return text;
+}
