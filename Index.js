@@ -21,7 +21,7 @@ client.on("ready", () => {
   console.log("Client is ready!");
 });
 
-let contacts = ["919629579216", "917010846735", "919962135365"];
+let contacts = ["919629579216", "917010846735", "919962135365", "919487681007"];
 
 client.on("message", async (message) => {
   if (contacts.includes(message.from.split("@")[0])) {
